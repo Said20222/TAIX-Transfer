@@ -1,0 +1,11 @@
+# TAIX-Transfer | Data Understanding notebook
+# Versions can be locked more tightly after the team's first reproducibility run.
+numpy>=1.26,<3
+pandas>=2.0,<3
+pyarrow>=14
+matplotlib>=3.7
+Pillow>=10
+datasets>=3.0,<5
+huggingface_hub>=0.25
+tqdm>=4.66
+ipykernel>=6.0

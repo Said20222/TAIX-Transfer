@@ -218,3 +218,34 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# TAIX-Ray datasets and locally cached data
+data/
+datasets/
+eda_image_sample/
+taix_metadata_eda.parquet
+eda_image_sample_manifest.csv
+eda_image_characteristics.csv
+eda_pixel_characteristics.csv
+
+# Generated outputs
+outputs/
+results/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+
+# Jupyter temporary files
+.ipynb_checkpoints/
+
+# Environment variables and local credentials
+.env
+.env.*
+!.env.example
