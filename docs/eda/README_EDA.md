@@ -4,7 +4,7 @@ This section is ready to copy into the project's main `README.md`, or it can be 
 
 ## Overview
 
-`01_data_understanding_clean.ipynb` implements **CRISP-DM Phase 2: Data Understanding** for [TAIX-Ray](https://huggingface.co/datasets/TLAIM/TAIX-Ray). It covers official patient-disjoint splits, eight ordinal label distributions, exploratory five-finding associations, demographics, longitudinal/temporal patterns, image dimensions, 16-bit grayscale intensity characteristics, and data integrity checks.
+`01_data_understanding.ipynb` implements **CRISP-DM Phase 2: Data Understanding** for [TAIX-Ray](https://huggingface.co/datasets/TLAIM/TAIX-Ray). It covers official patient-disjoint splits, eight ordinal label distributions, exploratory five-finding associations, demographics, longitudinal/temporal patterns, image dimensions, 16-bit grayscale intensity characteristics, and data integrity checks.
 
 The full-metadata analyses cover **215,381 radiographs from 47,724 patients**. Image-level analyses use a **reproducible, split-balanced sample of 900 radiographs** (300 each from train, validation, and test); they do not cover all 215,381 image files.
 
@@ -114,28 +114,6 @@ TAIX-Ray/
 - The per-image 1st–99th percentile normalization in the six-image visualization is **display-only**, not final EVA-X/DenseNet training preprocessing.
 - Valid grade codes and PNG decoding do **not** prove the clinical correctness of annotations or image quality across the complete dataset.
 - The notebook uses the **official train/validation/test splits**, not random new patient splits, and must not be used to select a model based on test-set results.
-
-## GitHub hygiene
-
-**Commit:** the cleaned `.ipynb`, this README section, `requirements-eda.txt`, and optionally lightweight, non-sensitive aggregate plots or the deterministic manifest when agreed by the team.
-
-**Do not commit:** the 900 raw X-rays, Hugging Face tokens, large caches, downloaded model weights, or patient-level exports. Add the following to the repository's `.gitignore` (adjust if your repo deliberately tracks a non-data file in `data/`):
-
-```gitignore
-.venv/
-.ipynb_checkpoints/
-__pycache__/
-.env
-.env.*
-data/
-**/eda_image_sample/
-**/eda_outputs/
-**/taix_metadata_eda.parquet
-**/eda_image_characteristics.csv
-**/eda_pixel_characteristics.csv
-```
-
-When sharing summary plots of patient images, follow the dataset's applicable license and institutional privacy policy. Do not upload patient-level data to GitHub merely because identifiers are pseudonymized.
 
 ## References
 
