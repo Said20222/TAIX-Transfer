@@ -33,7 +33,7 @@ TAIX-Transfer/
 │   └── 01_data_understanding.ipynb
 ├── docs/
 │   └── eda/
-│       ├── README.md
+│       ├── README_EDA.md
 │       └── TAIX-Ray_EDA_Part_II.pdf
 ├── src/
 ├── requirements-eda.txt
@@ -55,7 +55,7 @@ The exploratory analysis covers:
 
 ### Reproducing the EDA
 
-See [EDA Setup and Reproduction Instructions](docs/eda/README.md).
+See [EDA Setup and Reproduction Instructions](docs/eda/README_EDA.md).
 
 The notebook supports Google Colab and local Jupyter environments.
 
