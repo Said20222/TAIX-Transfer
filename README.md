@@ -74,6 +74,7 @@ DenseNet-121 throughput benchmark, see [Training Setup — Local GPU](docs/train
 python scripts/download_taix.py      # 58 GB, all 215,381 images
 python scripts/validate_taix.py      # checks counts/splits/labels and decodes every image
 python scripts/bench_densenet.py     # short DenseNet-121 training benchmark
+python scripts/train_densenet.py     # full DenseNet-121 training (val AUROC 0.850 at 224 px)
 ```
 
 ## Upcoming Work

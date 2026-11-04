@@ -106,3 +106,36 @@ only show that the pipeline learns.
 
 **Disk use:** the parquet files take 58 GB in `data/`. On first use, `datasets` also builds an Arrow
 cache of about 44 GB in `~/.cache/huggingface/datasets/parquet`. Later runs load it in about 5 s.
+
+## 5. Train DenseNet-121
+
+```bash
+python scripts/train_densenet.py                      # 224 px, up to 20 epochs, early stopping
+python scripts/train_densenet.py --size 512 --batch-size 48 --epochs 15
+```
+
+- The best epoch is chosen by mean validation AUROC. The test split is used only with `--eval-test`, once,
+  on the best checkpoint.
+- Outputs go to `outputs/runs/<run>/`: `config.json`, `history.csv`, `best.pt`, `last.pt`,
+  `val_predictions_best.parquet` and `summary.json`.
+- Defaults:
+  - Targets: grade ≥ 2 (provisional, as in the benchmark).
+  - Preprocessing: images are zero-padded to a square (not stretched).
+  - Augmentation: random rotation ±10°, shift ±5% and zoom 0.9–1.1. There is **no horizontal flip**,
+    because the labels are left/right specific.
+  - Optimizer: AdamW, learning rate 1e-4, 500 warmup steps, then cosine decay.
+
+**First run (2026-11-04, 224 px):** epoch 6 was best, with validation mean AUROC **0.850** over the
+8 labels and **0.837** over the 5 findings. After that the model overfit: validation loss rose while
+training loss kept falling. Early stopping ended the run at epoch 11, after 19.5 min in total.
+
+| Finding | Val AUROC |
+|---|---|
+| Pleural effusion (either side) | 0.884 |
+| Cardiomegaly (HeartSize) | 0.871 |
+| Pulmonary opacity (either side) | 0.838 |
+| Atelectasis (either side) | 0.805 |
+| Congestion | 0.788 |
+
+Epoch 1 takes about 4 min because the data is read from disk for the first time. After that an epoch
+takes about 1.5 min (about 1,700 img/s), including validation.
