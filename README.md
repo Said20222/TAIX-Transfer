@@ -65,6 +65,17 @@ pip install -r requirements-eda.txt
 
 The dataset images and generated caches are excluded from Git. Follow the EDA instructions to obtain the data and reproduce the analysis.
 
+### Local GPU training setup
+
+To set up a local GPU (verified on an RTX 5090), download the full dataset, validate it, and run the
+DenseNet-121 throughput benchmark, see [Training Setup — Local GPU](docs/training/README_SETUP.md).
+
+```bash
+python scripts/download_taix.py      # 58 GB, all 215,381 images
+python scripts/validate_taix.py      # checks counts/splits/labels and decodes every image
+python scripts/bench_densenet.py     # short DenseNet-121 training benchmark
+```
+
 ## Upcoming Work
 
 - Finalize target-label and uncertainty-handling policies
