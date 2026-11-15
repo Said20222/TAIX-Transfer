@@ -107,25 +107,34 @@ only show that the pipeline learns.
 **Disk use:** the parquet files take 58 GB in `data/`. On first use, `datasets` also builds an Arrow
 cache of about 44 GB in `~/.cache/huggingface/datasets/parquet`. Later runs load it in about 5 s.
 
-## 5. Train DenseNet-121
+## 5. Train the models
 
 ```bash
-python scripts/train_densenet.py                      # 224 px, up to 20 epochs, early stopping
-python scripts/train_densenet.py --size 512 --batch-size 48 --epochs 15
+python scripts/train.py --model densenet121     # 224 px, up to 20 epochs, early stopping
+python scripts/train.py --model eva_x_tiny      # 224 px, up to 30 epochs, early stopping
 ```
 
-- The best epoch is chosen by mean validation AUROC. The test split is used only with `--eval-test`, once,
-  on the best checkpoint.
-- Outputs go to `outputs/runs/<run>/`: `config.json`, `history.csv`, `best.pt`, `last.pt`,
-  `val_predictions_best.parquet` and `summary.json`.
-- Defaults:
+- Both models share one data pipeline (`scripts/common.py`):
   - Targets: grade ≥ 2 (provisional, as in the benchmark).
   - Preprocessing: images are zero-padded to a square (not stretched).
   - Augmentation: random rotation ±10°, shift ±5% and zoom 0.9–1.1. There is **no horizontal flip**,
     because the labels are left/right specific.
-  - Optimizer: AdamW, learning rate 1e-4, 500 warmup steps, then cosine decay.
+- Each model gets its own optimizer recipe (`MODEL_DEFAULTS` in `scripts/common.py`). Any value can be
+  overridden, for example `--lr` or `--epochs`.
+  - DenseNet-121: AdamW, learning rate 1e-4, 500 warmup steps, then cosine decay.
+  - EVA-X-Tiny: the EVA-X authors' recipe, with lr 5e-4 at batch 512, layer decay 0.55,
+    weight decay 0.05, drop path 0.2, 5 warmup epochs and the EVA-X CXR mean/std. The pretrained weights
+    (`MapleF/eva_x`, rev `35ddcd6d`) are downloaded to `data/pretrained/` on first use. They are loaded
+    with PyTorch's safe weights-only unpickler.
+- The best epoch is chosen by mean validation AUROC. `train.py` never touches the test split.
+- Outputs go to `outputs/runs/<run>/`: `config.json`, `history.csv`, `best.pt`, `last.pt`,
+  `val_predictions_best.parquet` and `summary.json`.
 
-**First run (2026-11-04, 224 px):** epoch 6 was best, with validation mean AUROC **0.850** over the
+**EVA-X-Tiny run (2026-11-15, 224 px):** epoch 28 was best, with validation mean AUROC **0.852**
+over the 8 labels and **0.840** over the 5 findings. It ran all 30 epochs without overfitting, at about
+1.3 min per epoch (≈ 2,100 img/s), 42.6 min in total.
+
+**DenseNet-121 run (2026-11-04, 224 px):** epoch 6 was best, with validation mean AUROC **0.850** over the
 8 labels and **0.837** over the 5 findings. After that the model overfit: validation loss rose while
 training loss kept falling. Early stopping ended the run at epoch 11, after 19.5 min in total.
 
@@ -139,3 +148,16 @@ training loss kept falling. Early stopping ended the run at epoch 11, after 19.5
 
 Epoch 1 takes about 4 min because the data is read from disk for the first time. After that an epoch
 takes about 1.5 min (about 1,700 img/s), including validation.
+
+## 6. Evaluate on the test split
+
+```bash
+python scripts/evaluate_test.py outputs/runs/<densenet run> outputs/runs/<eva-x run>
+```
+
+The script predicts all 42,928 test images with each run's `best.pt`. It reports AUROC with 95% CIs
+from a patient-level bootstrap, and the paired difference between the two models. Results are written
+to `outputs/test_eval/`, and the script refuses to overwrite them unless `--force` is given. Use
+`--split val` for a dry run.
+
+The results and how to read them are in [Results — DenseNet-121 vs EVA-X-Tiny](../evaluation/README_RESULTS.md).

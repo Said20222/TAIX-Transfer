@@ -74,15 +74,25 @@ DenseNet-121 throughput benchmark, see [Training Setup — Local GPU](docs/train
 python scripts/download_taix.py      # 58 GB, all 215,381 images
 python scripts/validate_taix.py      # checks counts/splits/labels and decodes every image
 python scripts/bench_densenet.py     # short DenseNet-121 training benchmark
-python scripts/train_densenet.py     # full DenseNet-121 training (val AUROC 0.850 at 224 px)
+python scripts/train.py --model densenet121
+python scripts/train.py --model eva_x_tiny
+python scripts/evaluate_test.py outputs/runs/<densenet run> outputs/runs/<eva-x run>
 ```
+
+### First results
+
+On the test split (42,928 images, 9,545 patients), EVA-X-Tiny reaches a mean AUROC of **0.850**
+against **0.848** for DenseNet-121. The paired difference is +0.003 (95% CI +0.002 to +0.003). The gain
+is consistent across all findings but small, and it comes from one training run per model. See
+[Results — DenseNet-121 vs EVA-X-Tiny](docs/evaluation/README_RESULTS.md).
 
 ## Upcoming Work
 
 - Finalize target-label and uncertainty-handling policies
 - Finalize preprocessing and normalization
-- Implement DenseNet-121 and EVA-X training pipelines
-- Evaluate using patient-disjoint validation and test data
+- ~~Implement DenseNet-121 and EVA-X training pipelines~~ (done: `scripts/train.py`)
+- ~~Evaluate using patient-disjoint validation and test data~~ (first comparison done; see results)
+- Repeat each model with several seeds, so the comparison covers run-to-run variation
 - Compare predictive performance and robustness
 
 ## References
