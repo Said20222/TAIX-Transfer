@@ -14,7 +14,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from PIL import Image
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import average_precision_score, roc_auc_score
 from torch.utils.data import Dataset
 
 LABEL_COLS = [
@@ -43,9 +43,9 @@ EVA_X_TINY_WEIGHTS = {
 #                with the learning rate scaled linearly to batch 512.
 MODEL_DEFAULTS = {
     "densenet121": dict(mean=0.449, std=0.226, lr=1e-4, weight_decay=1e-4, batch_size=128, epochs=20,
-                        warmup_steps=500, warmup_epochs=None, layer_decay=None, drop_path=0.0),
+                        warmup_steps=500, warmup_epochs=None, layer_decay=None, drop_path=0.0, dropout=0.0),
     "eva_x_tiny": dict(mean=0.49185243, std=0.28509309, lr=5e-4, weight_decay=0.05, batch_size=512, epochs=30,
-                       warmup_steps=None, warmup_epochs=5, layer_decay=0.55, drop_path=0.2),
+                       warmup_steps=None, warmup_epochs=5, layer_decay=0.55, drop_path=0.2, dropout=0.0),
 }
 
 
@@ -147,13 +147,17 @@ def eva_x_state_dict(src: dict) -> dict:
     return out
 
 
-def build_model(name: str, device, pretrained: bool = True, drop_path: float = 0.0, weights_dir="data/pretrained"):
+def build_model(name: str, device, pretrained: bool = True, drop_path: float = 0.0, dropout: float = 0.0,
+                weights_dir="data/pretrained"):
+    """dropout: DenseNet-121 only, applied to the pooled features before the classifier.
+    With dropout=0 the classifier stays a plain Linear, so older checkpoints still load."""
     n = len(LABEL_COLS)
     if name == "densenet121":
         from torchvision.models import DenseNet121_Weights, densenet121
 
         m = densenet121(weights=DenseNet121_Weights.IMAGENET1K_V1 if pretrained else None)
-        m.classifier = nn.Linear(m.classifier.in_features, n)
+        head = nn.Linear(m.classifier.in_features, n)
+        m.classifier = nn.Sequential(nn.Dropout(dropout), head) if dropout > 0 else head
     elif name == "eva_x_tiny":
         m = _eva_x_tiny(drop_path, n)
         if pretrained:
@@ -205,6 +209,11 @@ def auroc(y, p):
     return float(roc_auc_score(y, p)) if 0 < y.sum() < len(y) else float("nan")
 
 
+def auprc(y, p):
+    """Area under the precision-recall curve (average precision). Chance level = prevalence."""
+    return float(average_precision_score(y, p)) if 0 < y.sum() < len(y) else float("nan")
+
+
 def finding_arrays(probs: np.ndarray, targets: np.ndarray):
     """(probs, targets) for the 5 findings: bilateral = max(left, right) score, OR of labels."""
     idx = {c: j for j, c in enumerate(LABEL_COLS)}
@@ -217,13 +226,20 @@ def finding_arrays(probs: np.ndarray, targets: np.ndarray):
 
 
 def metrics(probs: np.ndarray, targets: np.ndarray) -> dict:
-    per_label = {c: auroc(targets[:, j], probs[:, j]) for j, c in enumerate(LABEL_COLS)}
+    """Primary metric: mean AUROC. Secondary: mean AUPRC (average precision), which, unlike AUROC,
+    depends on prevalence and puts weight on how clean the top-ranked positives are."""
     p5, t5 = finding_arrays(probs, targets)
-    per_finding = {name: auroc(t5[:, j], p5[:, j]) for j, name in enumerate(FINDINGS)}
+    roc8 = {c: auroc(targets[:, j], probs[:, j]) for j, c in enumerate(LABEL_COLS)}
+    roc5 = {name: auroc(t5[:, j], p5[:, j]) for j, name in enumerate(FINDINGS)}
+    pr8 = {c: auprc(targets[:, j], probs[:, j]) for j, c in enumerate(LABEL_COLS)}
+    pr5 = {name: auprc(t5[:, j], p5[:, j]) for j, name in enumerate(FINDINGS)}
+    mean = lambda d: float(np.nanmean(list(d.values())))  # noqa: E731
     return {
-        "mean_auroc_8": float(np.nanmean(list(per_label.values()))),
-        "mean_auroc_5": float(np.nanmean(list(per_finding.values()))),
-        "auroc_8": per_label, "auroc_5": per_finding,
+        "mean_auroc_8": mean(roc8), "mean_auroc_5": mean(roc5),
+        "mean_auprc_8": mean(pr8), "mean_auprc_5": mean(pr5),
+        "auroc_8": roc8, "auroc_5": roc5, "auprc_8": pr8, "auprc_5": pr5,
+        "prevalence_8": {c: float(targets[:, j].mean()) for j, c in enumerate(LABEL_COLS)},
+        "prevalence_5": {name: float(t5[:, j].mean()) for j, name in enumerate(FINDINGS)},
     }
 
 
